@@ -17,7 +17,7 @@ namespace BlightReturnsRework
 {
     [BepInDependency("com.RiskyLives.LinearDamage", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.RiskyLives.SneedHooks")]
-    [BepInPlugin("com.Moffein.BlightReturnsRework", "BlightReturnsRework", "1.0.2")]
+    [BepInPlugin("com.Moffein.BlightReturnsRework", "BlightReturnsRework", "1.0.3")]
     public class BlightReturnsReworkPlugin : BaseUnityPlugin
     {
         public static float damageMultPerBuff = 0.05f;
@@ -35,7 +35,9 @@ namespace BlightReturnsRework
             {
                 SneedHooks.ModifyFinalDamage.ModifyFinalDamageActions += ModifyFinalDamage;
             }
-            On.RoR2.DotController.AddDot_GameObject_float_HurtBox_DotIndex_float_Nullable1_Nullable1_Nullable1 += ModifyBlight;
+
+            On.RoR2.DotController.AddDot_GameObject_float_HurtBox_DotIndex_float_ProcChainMask_Nullable1_Nullable1_Nullable1 += ModifyBlight;
+
             IL.RoR2.GlobalEventManager.ProcessHitEnemy += GlobalEventManager_ProcessHitEnemy;
 
             RoR2Application.onLoad += OnLoadActions;
@@ -77,7 +79,8 @@ namespace BlightReturnsRework
             }
         }
 
-        private void ModifyBlight(On.RoR2.DotController.orig_AddDot_GameObject_float_HurtBox_DotIndex_float_Nullable1_Nullable1_Nullable1 orig, DotController self, GameObject attackerObject, float duration, HurtBox hitHurtBox, DotController.DotIndex dotIndex, float damageMultiplier, uint? maxStacksFromAttacker, float? totalDamage, DotController.DotIndex? preUpgradeDotIndex)
+
+        private void ModifyBlight(On.RoR2.DotController.orig_AddDot_GameObject_float_HurtBox_DotIndex_float_ProcChainMask_Nullable1_Nullable1_Nullable1 orig, DotController self, GameObject attackerObject, float duration, HurtBox hitHurtBox, DotController.DotIndex dotIndex, float damageMultiplier, ProcChainMask procChainMask, uint? maxStacksFromAttacker, float? totalDamage, DotController.DotIndex? preUpgradeDotIndex)
         {
             //Set Blight damage to 0 if attacker already has a blight stack to prevent damage scaling
             if (dotIndex == DotController.DotIndex.Blight)
@@ -92,7 +95,7 @@ namespace BlightReturnsRework
                 }
             }
 
-            orig(self, attackerObject, duration, hitHurtBox, dotIndex, damageMultiplier, maxStacksFromAttacker, totalDamage, preUpgradeDotIndex);
+            orig(self, attackerObject, duration, hitHurtBox, dotIndex, damageMultiplier, procChainMask, maxStacksFromAttacker, totalDamage, preUpgradeDotIndex);
 
             //Reset Blight duration
             if (dotIndex == DotController.DotIndex.Blight)
