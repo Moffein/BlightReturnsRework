@@ -9,6 +9,7 @@ using UnityEngine;
 using MonoMod.Cil;
 using UnityEngine.AddressableAssets;
 using RoR2.Skills;
+using RoR2.Projectile;
 
 
 [module: UnverifiableCode]
@@ -26,6 +27,12 @@ namespace BlightReturnsRework
         private void Awake()
         {
             pluginInfo = Info;
+            if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("com.RiskyLives.RiskyMod"))
+            {
+                Debug.LogWarning("BlightReturnsRework: RiskyMod is loaded, disabling mod. RiskyMod's version of the tweak will be used instead.");
+                return;
+            }
+
             On.RoR2.Language.SetFolders += LoadLanguage.fixme;
             if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("com.Moffein.LinearDamage"))
             {
@@ -41,6 +48,8 @@ namespace BlightReturnsRework
             IL.RoR2.GlobalEventManager.ProcessHitEnemy += GlobalEventManager_ProcessHitEnemy;
 
             RoR2Application.onLoad += OnLoadActions;
+
+            var comp = Addressables.LoadAssetAsync<GameObject>("5954b24e8404c1e4695488397f07fd14").WaitForCompletion().AddComponent<SuppressBlightComponent>();
         }
 
         private void OnLoadActions()
@@ -108,6 +117,57 @@ namespace BlightReturnsRework
                     }
                 }
             }
+        }
+    }
+
+
+    [RequireComponent(typeof(ProjectileDamage), typeof(ProjectileDotZone))]
+    public class SuppressBlightComponent : MonoBehaviour
+    {
+        public int ticksPerBlight = 3;  //How many damage ticks before a new blight stack is applied
+
+        private ProjectileDamage projectileDamage;
+        private ProjectileDotZone dotZone;
+
+        private float previousResetStopwatch;
+        private int tickCount;
+
+        private void Awake()
+        {
+            projectileDamage = GetComponent<ProjectileDamage>();
+        }
+
+        private void Start()
+        {
+            bool shouldRunCode = projectileDamage.damageType.damageType == RoR2.DamageType.BlightOnHit;
+
+            if (!shouldRunCode)
+            {
+                Destroy(this);
+                return;
+            }
+
+            projectileDamage.damageType.damageType = RoR2.DamageType.Generic;
+            dotZone = GetComponent<ProjectileDotZone>();
+            previousResetStopwatch = dotZone.resetStopwatch;
+        }
+
+        private void FixedUpdate()
+        {
+            if (dotZone.resetStopwatch < previousResetStopwatch)
+            {
+                tickCount++;
+                if (tickCount >= ticksPerBlight)
+                {
+                    projectileDamage.damageType.damageType = RoR2.DamageType.BlightOnHit;
+                    tickCount = 0;
+                }
+                else
+                {
+                    projectileDamage.damageType.damageType = RoR2.DamageType.Generic;
+                }
+            }
+            previousResetStopwatch = dotZone.resetStopwatch;
         }
     }
 }
